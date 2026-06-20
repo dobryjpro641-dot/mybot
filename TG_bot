@@ -5,7 +5,7 @@ from aiogram.types import Message
 from aiogram.filters import CommandStart, Command
 from aiogram.client.session.aiohttp import AiohttpSession
 
-TOKEN = "8791079706:AAGEpfIyZ4-okD2H2yjorrAYZTKKeyWP79Q"
+TOKEN = "8791079706:AAECrACpz1zZIq42ezxjCMCN9AUL7SQqRj0"
 TARGET_SUM = 50000  # Цель на ноут
 
 
