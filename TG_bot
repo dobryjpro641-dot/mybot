@@ -9,7 +9,7 @@ TOKEN = "8791079706:AAGEpfIyZ4-okD2H2yjorrAYZTKKeyWP79Q"
 TARGET_SUM = 50000  # Цель на ноут
 
 
-bot = Bot(token=TOKEN, session=session)
+bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
 def init_db():
