@@ -1,0 +1,92 @@
+import sqlite3
+import asyncio
+from aiogram import Bot, Dispatcher, F
+from aiogram.types import Message
+from aiogram.filters import CommandStart, Command
+from aiogram.client.session.aiohttp import AiohttpSession
+
+TOKEN = "8791079706:AAGEpfIyZ4-okD2H2yjorrAYZTKKeyWP79Q"
+TARGET_SUM = 50000  # Цель на ноут
+
+# Встроенный бесплатный прокси для обхода блокировок API при локальном запуске в РФ
+# Если запускаешь на зарубежном VPS, эту сессию можно убрать
+session = AiohttpSession(proxy="http://64.225.8.125:3128") # Пример рабочего прокси
+
+bot = Bot(token=TOKEN, session=session)
+dp = Dispatcher()
+
+def init_db():
+    conn = sqlite3.connect("wallet.db")
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS user_wallet (
+            id INTEGER PRIMARY KEY, saved REAL DEFAULT 0, fun REAL DEFAULT 0
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+def get_wallet():
+    conn = sqlite3.connect("wallet.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT saved, fun FROM user_wallet WHERE id = 1")
+    row = cursor.fetchone()
+    if not row:
+        cursor.execute("INSERT INTO user_wallet (id, saved, fun) VALUES (1, 0, 0)")
+        conn.commit()
+        row = (0.0, 0.0)
+    conn.close()
+    return row
+
+def update_wallet(saved_add, fun_add):
+    conn = sqlite3.connect("wallet.db")
+    cursor = conn.cursor()
+    cursor.execute("UPDATE user_wallet SET saved = saved + ?, fun = fun + ? WHERE id = 1", (saved_add, fun_add))
+    conn.commit()
+    conn.close()
+
+@dp.message(CommandStart())
+async def start_cmd(message: Message):
+    await message.answer(
+        "👋 Привет, бро! Бот-бухгалтер на связи.\n\n"
+        "Пиши сумму дохода цифрой (например: 2000), и я поделю её.\n\n"
+        "📊 /status — проверить копилку и прогресс"
+    )
+
+@dp.message(Command("status"))
+async def status_cmd(message: Message):
+    saved, fun = get_wallet()
+    left_to_earn = max(0.0, TARGET_SUM - saved)
+    percent = min(100.0, (saved / TARGET_SUM) * 100)
+    
+    bar = '🟩' * int(round(10 * percent / 100)) + '⬜' * (10 - int(round(10 * percent / 100)))
+
+    await message.answer(
+        f"📊 **Статус копилки:**\n\n"
+        f"💻 На ноут: **{saved:,.2f} руб.**\n"
+        f"🍟 На кайфушки: **{fun:,.2f} руб.**\n\n"
+        f"Прогресс: [{bar}] {percent:.1f}%\n"
+        f"Осталось собрать: **{left_to_earn:,.2f} руб.**"
+    )
+
+@dp.message(F.text.regexp(r'^\d+$'))
+async def process_income(message: Message):
+    income = float(message.text)
+    to_save, to_fun = income * 0.7, income * 0.3
+    
+    update_wallet(to_save, to_fun)
+    saved, fun = get_wallet()
+    
+    await message.answer(
+        f"💰 **Распределено {income:,.0f} руб.!**\n\n"
+        f"📈 В копилку: **+{to_save:,.2f} руб.**\n"
+        f"🍔 Твоя доля: **+{to_fun:,.2f} руб.** (Иди трать!)\n\n"
+        f"Всего собранно: {saved:,.2f} руб. Осталось: {max(0.0, TARGET_SUM - saved):,.2f} руб."
+    )
+
+async def main():
+    init_db()
+    await dp.start_polling(bot)
+
+if __name__ == '__main__':
+    asyncio.run(main())
