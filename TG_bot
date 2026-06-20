@@ -3,15 +3,32 @@ import asyncio
 from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message
 from aiogram.filters import CommandStart, Command
-from aiogram.client.session.aiohttp import AiohttpSession
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import threading
 
 TOKEN = "8791079706:AAECrACpz1zZIq42ezxjCMCN9AUL7SQqRj0"
 TARGET_SUM = 50000  # Цель на ноут
 
-
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
+# ФЕЙКОВЫЙ ВЕБ-СЕРВЕР ДЛЯ ОБМАНА RENDER
+class FakeWebhookServer(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-type", "text/html")
+        self.end_headers()
+        self.wfile.write(b"Bot is alive!")
+
+def run_web_server():
+    # Render сам передает порт, на котором должен висеть сайт, в переменную окружения PORT
+    import os
+    port = int(os.environ.get("PORT", 10000))
+    server = HTTPServer(("0.0.0.0", port), FakeWebhookServer)
+    print(f"Фейковый веб-сервер запущен на порту {port}")
+    server.serve_forever()
+
+# Инициализация базы данных
 def init_db():
     conn = sqlite3.connect("wallet.db")
     cursor = conn.cursor()
@@ -83,6 +100,11 @@ async def process_income(message: Message):
 
 async def main():
     init_db()
+    # Запускаем веб-сервер в отдельном потоке, чтобы он не мешал боту
+    web_thread = threading.Thread(target=run_web_server, daemon=True)
+    web_thread.start()
+    
+    print("Бот успешно запущен и готов к работе!")
     await dp.start_polling(bot)
 
 if __name__ == '__main__':
