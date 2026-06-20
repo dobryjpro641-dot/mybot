@@ -8,9 +8,6 @@ from aiogram.client.session.aiohttp import AiohttpSession
 TOKEN = "8791079706:AAGEpfIyZ4-okD2H2yjorrAYZTKKeyWP79Q"
 TARGET_SUM = 50000  # Цель на ноут
 
-# Встроенный бесплатный прокси для обхода блокировок API при локальном запуске в РФ
-# Если запускаешь на зарубежном VPS, эту сессию можно убрать
-session = AiohttpSession(proxy="http://64.225.8.125:3128") # Пример рабочего прокси
 
 bot = Bot(token=TOKEN, session=session)
 dp = Dispatcher()
